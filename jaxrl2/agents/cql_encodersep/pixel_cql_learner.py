@@ -21,7 +21,7 @@ from flax.training import train_state
 
 from jaxrl2.agents.agent import Agent
 
-from jaxrl2.agents.bc.actor_updater import log_prob_update
+from jaxrl2.agents.cql_encodersep.actor_updater_bc import log_prob_update_bc
 from jaxrl2.agents.cql_encodersep.actor_updater import update_actor
 from jaxrl2.agents.cql_encodersep.critic_updater import update_critic
 from jaxrl2.agents.cql_encodersep.temperature_updater import update_temperature
@@ -114,8 +114,8 @@ def _update_jit(
     if True:
         if bc_update:
             rng, key = jax.random.split(rng)
-            _, new_actor, actor_info = log_prob_update(key, actor, batch)
-            new_temp, alpha_info = temp, {}
+            new_actor, actor_info = log_prob_update_bc(key, actor, batch)
+            new_temp, alpha_info = update_temperature(temp, actor_info['entropy'], target_entropy)
         else:
             rng, key = jax.random.split(rng)
             new_actor, actor_info = update_actor(key, actor, new_critic_encoder, new_critic_decoder, temp, batch, cross_norm=cross_norm)
@@ -211,6 +211,7 @@ class PixelCQLLearnerEncoderSep(Agent):
         self.bound_q_with_mc = bound_q_with_mc
         self.online_bound_nstep_return = online_bound_nstep_return
         self.bc_hotstart = bc_hotstart
+        self.timestep = 0
 
         rng = jax.random.PRNGKey(seed)
         rng, actor_key, critic_key, temp_key = jax.random.split(rng, 4)
@@ -356,7 +357,7 @@ class PixelCQLLearnerEncoderSep(Agent):
 
 
     def update(self, batch: FrozenDict, i=-1) -> Dict[str, float]:
-        bc_update = int(i < self.bc_hotstart)
+        bc_update = int(self.timestep < self.bc_hotstart)
         
         new_rng, new_actor, new_critic, new_target_critic_params, new_temp, info = _update_jit(
             self._rng, self._actor, self._critic_encoder, self._critic_decoder, 
@@ -383,6 +384,8 @@ class PixelCQLLearnerEncoderSep(Agent):
         self._target_critic_encoder_params = new_target_critic_encoder_params
         self._target_critic_decoder_params = new_target_critic_decoder_params
         self._target_critic_params = (new_target_critic_encoder_params, new_target_critic_decoder_params)
+        
+        self.timestep += 1
         
         self._temp = new_temp
 

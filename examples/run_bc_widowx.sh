@@ -17,7 +17,7 @@ export PYTHONPATH=/home/asap7772/jaxrl2_finetuning_benchmark/:$PYTHONPATH;
 export EXP=/home/asap7772/jaxrl2_finetuning_benchmark/experiment_output
 export DATA=/nfs/nfs1/
 
-seed=0
+seed=1
 cql_alpha=5
 dry_run=0
 

@@ -16,14 +16,14 @@ export PYTHONPATH=/home/asap7772/jaxrl2_finetuning_benchmark/:$PYTHONPATH;
 export EXP=/home/asap7772/jaxrl2_finetuning_benchmark/experiment_output
 export DATA=/nfs/nfs1/
 
-seed=0
+seed=1
 cql_alpha=5
 dry_run=0
 
 total_runs=0
 max_runs=8
 gpu_id=0
-which_devices=(0 1 2 3 4 5 6 7)
+which_devices=(0 1 0 1 2 3)
 
 alphas=(0.05 0.1 0.2)
 # alphas=(0.05 0.1 0.2 0.5 1.0 2.0 5.0 10.0)
