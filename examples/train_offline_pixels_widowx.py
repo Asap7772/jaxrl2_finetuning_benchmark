@@ -68,6 +68,10 @@ def main(variant):
         agent = PixelIQLLearner(variant.seed, sample_obs, sample_action, **kwargs)
     elif variant['algorithm'] == 'td3bc':
         agent = PixelTD3BCLearner(variant.seed, sample_obs, sample_action, **kwargs)
+    elif variant['algorithm'] == 'ddpm_bc':
+        agent = PixelDDPMBCLearner(variant.seed, sample_obs, sample_action, **kwargs)
+    elif variant['algorithm'] == 'idql':
+        agent = PixelIDQLLearner(variant.seed, sample_obs, sample_action, **kwargs)
     else:
         raise ValueError(f"Unknown algorithm {variant['algorithm']}")
 

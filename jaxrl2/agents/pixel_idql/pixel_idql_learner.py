@@ -101,7 +101,7 @@ class PixelIDQLLearner(Agent):
         cnn_strides: Sequence[int] = (2, 1, 1, 1),
         cnn_padding: str = "VALID",
         latent_dim: int = 50,
-        encoder: str = "d4pg",
+        encoder: str = 'resnet',
         hidden_dims: Sequence[int] = (256, 256),
         use_layer_norm: bool = True,
         dropout_rate: Optional[float] = 0.1,

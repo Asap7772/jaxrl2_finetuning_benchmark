@@ -46,7 +46,13 @@ def offline_training_loop(variant, agent, eval_env, replay_buffer, eval_replay_b
         tget_data = time.time() - t0
         t1 = time.time()
 
-        update_info = agent.update(batch)
+        out = agent.update(batch)
+        
+        if isinstance(out, tuple):
+            agent, update_info = out
+        else:
+            update_info = out
+
         tupdate = time.time() - t1
 
         if variant.offline_finetuning_start != -1:
@@ -380,9 +386,23 @@ def collect_traj(variant, agent, env, deterministic, traj_id=None, max_len_eval=
                 obs_filtered = obs
 
             if deterministic:
-                action = agent.eval_actions(obs_filtered).squeeze()
+                out = agent.eval_actions(obs_filtered)
+                if isinstance(out, tuple):
+                    action, agent = out
+                else:
+                    action = out
+                
+                action = action.squeeze()
             else:
-                action = agent.sample_actions(obs_filtered).squeeze()
+
+                out = agent.sample_actions(obs_filtered)
+                if isinstance(out, tuple):
+                    action, agent = out
+                else:
+                    action = out
+                
+                action = action.squeeze()
+
             next_obs, reward, done, info = env.step(action)
 
             if hasattr(variant, 'eval_task_id'):

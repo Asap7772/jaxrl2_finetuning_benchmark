@@ -83,7 +83,7 @@ class PixelDDPMBCLearner(Agent):
         cnn_strides: Sequence[int] = (2, 1, 1, 1),
         cnn_padding: str = "VALID",
         latent_dim: int = 50,
-        encoder: str = "d4pg",
+        encoder: str = "resnet",
         hidden_dims: Sequence[int] = (256, 256),
         use_layer_norm: bool = True,
         dropout_rate: Optional[float] = 0.1,
@@ -93,7 +93,7 @@ class PixelDDPMBCLearner(Agent):
         actor_architecture: str = 'ln_resnet',
         actor_num_blocks: int = 3,
         beta_schedule: str = 'cosine',
-        T: int = 20,
+        T: int = 10,
         clip_sampler: bool = True,
         ddpm_temperature: float = 1.0,
         actor_tau: float = 0.001,
@@ -188,7 +188,7 @@ class PixelDDPMBCLearner(Agent):
             # actor_cls = PixelMultiplexer(encoder_cls=encoder_cls, network_cls=actor_cls, latent_dim=latent_dim, pixel_keys=pixel_keys, depth_keys=depth_keys, skip_normalization=True)
         elif encoder == "resnet":
             # encoder_cls = partial(ResNetV2Encoder, stage_sizes=(2, 2, 2, 2))
-            encoder_cls = partial(ResNetV2Encoder, stage_sizes=(2, 2, 2))
+            encoder_cls = partial(ResNetV2Encoder, stage_sizes=(3, 4, 6, 3))
 
             actor_cls = PixelMultiplexer(
                 encoder_cls=encoder_cls,
