@@ -21,11 +21,16 @@ def log_prob_update_bc(rng: PRNGKey, actor: TrainState, batch: FrozenDict):
         else:
             dist = actor.apply_fn({'params': actor_params}, batch['observations'], training=True, rngs={'dropout': key})
             new_model_state = {}
+        
+        # clip actions to be in [-1, 1]
+        actions = batch['actions']
+        eps = 1e-6
+        actions = jnp.clip(actions, -1.0 + eps, 1.0 - eps)
             
-        log_probs = dist.log_prob(batch['actions'])
+        log_probs = dist.log_prob(actions)
         log_prob_loss = - (log_probs).mean()
 
-        mse = (dist.mode() - batch['actions']) ** 2
+        mse = (dist.mode() - actions) ** 2
         mse = mse.mean(axis=-1) # mean over action dimension
         mse_loss = (mse).mean()
                 
@@ -53,8 +58,6 @@ def log_prob_update_bc(rng: PRNGKey, actor: TrainState, batch: FrozenDict):
 
             'entropy': -log_pi.mean(),
         }
-
-        things_to_log = {'bc_' + k: v for k, v in things_to_log.items()}
 
         return actor_loss, (new_model_state, things_to_log)
 

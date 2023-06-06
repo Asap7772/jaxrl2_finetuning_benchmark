@@ -76,8 +76,9 @@ def offline_training_loop(variant, agent, eval_env, replay_buffer, eval_replay_b
                     image = visualize_image_rewards(update_info.pop('pixels'), batch['rewards'], update_info.pop('rewards_mean'), batch['observations'], task_id_mapping=task_id_mapping)
                     wandb_logger.log({'training/image_rewards': wandb.Image(image)}, step=i)
                 else:
-                    image = visualize_image_actions(update_info.pop('pixels'), batch['actions'], update_info.pop('pred_actions_mean'))
-                    wandb_logger.log({'training/image_actions': wandb.Image(image)}, step=i)
+                    if 'pred_actions_mean' in update_info:
+                        image = visualize_image_actions(update_info.pop('pixels'), batch['actions'], update_info.pop('pred_actions_mean'))
+                        wandb_logger.log({'training/image_actions': wandb.Image(image)}, step=i)
             if perform_control_evals:
                 perform_control_eval(agent, eval_env, i, variant, wandb_logger)
 

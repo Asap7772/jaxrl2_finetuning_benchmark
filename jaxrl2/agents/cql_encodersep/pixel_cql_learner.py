@@ -74,6 +74,9 @@ def _update_jit(
 
     observations = batch['observations'].copy(add_or_replace={'pixels': aug_pixels})
     batch = batch.copy(add_or_replace={'observations': observations})
+    
+    actions_clipped = jnp.clip(batch['actions'], a_min=-0.999, a_max=0.999)
+    batch = batch.copy(add_or_replace={'actions': actions_clipped})
 
     key, rng = jax.random.split(rng)
     if True:
