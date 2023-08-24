@@ -7,7 +7,7 @@ debug=0
 if [ $debug -eq 1 ]; then
     proj_name=test
 else
-    proj_name=06_05_widowx_iql
+    proj_name=06_05_widowx_td3_bc
 fi
 
 # proj_name=test

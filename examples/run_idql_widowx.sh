@@ -7,7 +7,7 @@ debug=0
 if [ $debug -eq 1 ]; then
     proj_name=test
 else
-    proj_name=06_05_widowx_ddpm_bc
+    proj_name="06_05_widowx_idql"
 fi
 
 # proj_name=test
@@ -17,15 +17,16 @@ export PYTHONPATH=/home/asap7772/jaxrl2_finetuning_benchmark/:$PYTHONPATH;
 export EXP=/home/asap7772/jaxrl2_finetuning_benchmark/experiment_output
 export DATA=/nfs/nfs1/
 
-seed=0
+seed=1
 cql_alpha=5
 dry_run=0
 
 total_runs=0
 max_runs=8
 gpu_id=0
-which_devices=(0 1 2 3 4 5)
+which_devices=(0 1 2 3 4 5 6 7)
 datasets=(sorting pickplace)
+expectiles=(0.5 0.8 0.9)
 
 if [ $debug -eq 1 ]; then
     max_runs=1
