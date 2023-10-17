@@ -13,6 +13,7 @@ import metaworld
 import numpy as np
 from PIL import Image
 
+import os 
 #import roboverse
 
 
@@ -114,6 +115,7 @@ class AdroitHand:
         self._camera_angle = camera_angle
 
         self.viewer = mujoco_py.MjRenderContextOffscreen(self._env.sim, -1)
+        # self.viewer = mujoco_py.MjRenderContextOffscreen(self._env.sim, 0)
         self.setup_viewer(self.viewer, camera_angle)
 
         # self.setup_viewer()
@@ -432,10 +434,11 @@ CAMERAS = {
 
 class Kitchen:
     def __init__(self, task=['microwave'], size=(64, 64), proprio=True, log_only_target_tasks=False):
-        # from .RPL.adept_envs import adept_envs
-        # sys.path.append("/workdisk/code/relay-policy-learning/adept_envs")
-        # sys.path.append("../../relay-policy-learning/adept_envs")
-        sys.path.append("../../finetuning_benchmark/benchmark/domains/relay-policy-learning/adept_envs")
+        # export RELAY_POLICY_REPO="/iris/u/khatch/vd5rl/finetuning_benchmark/benchmark/domains/relay-policy-learning/adept_envs"
+
+        RELAY_POLICY_PATH = os.environ.get('RELAY_POLICY_REPO', None)
+        print("RELAY_POLICY_PATH:", RELAY_POLICY_PATH)
+        sys.path.append(RELAY_POLICY_PATH)
 
         import adept_envs
         self._env = gym.make('kitchen_relax_rpl-v1')
@@ -531,8 +534,9 @@ class Kitchen:
 
 
 class KitchenMultipleViews(Kitchen):
-    def __init__(self, *args, camera_ids=[0, 1], **kwargs):
+    def __init__(self, *args, camera_ids=[0, 1], use_wrist_cam=True, **kwargs):
         self.camera_ids = camera_ids
+        self._use_wrist_cam = use_wrist_cam
         super().__init__(*args, **kwargs)
         self.add_cameras()
         # self.render = self.render2
@@ -548,15 +552,22 @@ class KitchenMultipleViews(Kitchen):
                                           width=self._img_w)
             camera.set_pose(**CAMERAS[camera_id])
             self.cameras['camera_{}'.format(camera_id)] = camera
-        self.cameras['camera_gripper'] = engine.Camera(
-            self.sim,
-            height=self._img_h,
-            width=self._img_w,
-            camera_id='gripper_camera_rgb')
+
+        if self._use_wrist_cam:
+            self.cameras['camera_gripper'] = engine.Camera(
+                self.sim,
+                height=self._img_h,
+                width=self._img_w,
+                camera_id='gripper_camera_rgb')
 
     def get_observation_space(self):
         spaces = {}
-        spaces['pixels'] = gym.spaces.Box(0, 255, (self._img_h, self._img_w, 3 * (len(self.camera_ids) + 1)), dtype=np.uint8)
+
+        num_cams = len(self.camera_ids)
+        if self._use_wrist_cam:
+            num_cams += 1
+
+        spaces['pixels'] = gym.spaces.Box(0, 255, (self._img_h, self._img_w, 3 * num_cams), dtype=np.uint8)
         # spaces['pixels'] = gym.spaces.Box(0, 255, (self._img_h, self._img_w, 3, dtype=np.uint8)
 
         if self._proprio:

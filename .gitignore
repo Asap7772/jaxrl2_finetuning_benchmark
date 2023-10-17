@@ -130,7 +130,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
+.vscode
 .remote-sync.json
 jupyter_notebooks/
 examples/scratch.py

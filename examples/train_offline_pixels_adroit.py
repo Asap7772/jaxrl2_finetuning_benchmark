@@ -13,17 +13,19 @@ from ml_collections import config_flags
 
 from jaxrl2.evaluation import evaluate_adroit
 
-from jaxrl2.agents.pixel_cql import PixelCQLLearner
-from jaxrl2.agents.pixel_iql import PixelIQLLearner
-from jaxrl2.agents.pixel_bc import PixelBCLearner
-from jaxrl2.agents import PixelCQLLearnerEncoderSepParallel
+from jaxrl2.agents.kitchen_agents.pixel_cql import PixelCQLLearner
+from jaxrl2.agents.kitchen_agents.pixel_iql import PixelIQLLearner
+from jaxrl2.agents.kitchen_agents.pixel_bc import PixelBCLearner
+from jaxrl2.agents.kitchen_agents.pixel_ddpm_bc import PixelDDPMBCLearner
+from jaxrl2.agents.kitchen_agents import PixelCQLLearnerEncoderSepParallel
+from jaxrl2.agents.kitchen_agents import PixelCQLLearnerEncoderSep
 
 import jaxrl2.wrappers.combo_wrappers as wrappers
 from jaxrl2.wrappers.frame_stack import FrameStack
 
 import collections
 
-from jaxrl2.data import MemoryEfficientReplayBuffer
+from jaxrl2.data.kitchen_data import MemoryEfficientReplayBuffer
 
 from glob import glob
 
@@ -53,11 +55,16 @@ flags.DEFINE_integer('max_gradient_steps', int(5e5), 'Number of training steps.'
 flags.DEFINE_integer('max_online_gradient_steps', int(5e5), 'Number of training steps.')
 flags.DEFINE_boolean('finetune_online', True, 'Save videos during evaluation.')
 flags.DEFINE_boolean('proprio', False, 'Save videos during evaluation.')
-
+flags.DEFINE_float("take_top", None, "Take top N% trajectories.")
+flags.DEFINE_float(
+    "filter_threshold", None, "Take trajectories with returns above the threshold."
+)
 
 flags.DEFINE_boolean('tqdm', False, 'Use tqdm progress bar.')
 flags.DEFINE_boolean('save_video', False, 'Save videos during evaluation.')
 flags.DEFINE_boolean('debug', False, 'Set to debug params (shorter).')
+flags.DEFINE_float("discount", 0.99, "Take top N% trajectories.")
+
 
 # config_flags.DEFINE_config_file(
 #     'config',
@@ -80,9 +87,11 @@ def main(_):
         FLAGS.project = "trash_results"
         # FLAGS.batch_size = 16
         FLAGS.max_gradient_steps = 500
-        FLAGS.eval_interval = 400
+        # FLAGS.eval_interval = 400
+        FLAGS.eval_interval = 1000
         FLAGS.eval_episodes = 2
-        FLAGS.log_interval = 200
+        # FLAGS.log_interval = 200
+        FLAGS.log_interval = 1000
 
         if FLAGS.max_online_gradient_steps > 0:
             FLAGS.max_online_gradient_steps = 500
@@ -114,17 +123,29 @@ def main(_):
         kwargs['decay_steps'] = FLAGS.max_gradient_steps + FLAGS.max_online_gradient_steps
 
     # assert kwargs["cnn_groups"] == 1
-    print(globals()[FLAGS.config.model_constructor])
-    agent = globals()[FLAGS.config.model_constructor](
-        FLAGS.seed, env.observation_space.sample(), env.action_space.sample(),
+    # print(globals()[FLAGS.config.model_constructor])
+    # agent = globals()[FLAGS.config.model_constructor](
+    #     FLAGS.seed, env.observation_space.sample(), env.action_space.sample(),
+    #     **kwargs)
+    if FLAGS.algorithm in ('idql', 'ddpm_bc'):
+        agent = globals()[FLAGS.config.model_constructor].create(
+        FLAGS.seed, env.observation_space, env.action_space,
         **kwargs)
+    else:
+        agent = globals()[FLAGS.config.model_constructor](
+            FLAGS.seed, env.observation_space.sample(), env.action_space.sample(),
+            **kwargs)
     print('Agent created')
 
     print("Loading replay buffer")
     replay_buffer = MemoryEfficientReplayBuffer(env.observation_space, env.action_space, FLAGS.replay_buffer_size)
     replay_buffer.seed(FLAGS.seed)
     replay_buffer_iterator = replay_buffer.get_iterator(sample_args={"batch_size": FLAGS.batch_size, "include_pixels": False})
-    load_data(replay_buffer, FLAGS.datadir, FLAGS.ep_length, 3, FLAGS.proprio, debug=FLAGS.debug)
+    load_data(replay_buffer, FLAGS.datadir, FLAGS.ep_length, 3, FLAGS.proprio, FLAGS.discount, debug=FLAGS.debug)
+
+    if FLAGS.take_top is not None or FLAGS.filter_threshold is not None:
+        ds.filter(take_top=FLAGS.take_top, threshold=FLAGS.filter_threshold)
+
     print('Replay buffer loaded')
 
     print('Start offline training')
@@ -133,7 +154,12 @@ def main(_):
         tbar.set_description(f"[{FLAGS.algorithm} {FLAGS.seed}] (offline)")
         batch = next(replay_buffer_iterator)
 
-        update_info = agent.update(batch)
+        out = agent.update(batch)
+
+        if isinstance(out, tuple):
+            agent, update_info = out
+        else:
+            update_info = out
 
         if i % FLAGS.log_interval == 0:
             for k, v in update_info.items():
@@ -155,7 +181,7 @@ def main(_):
 
     eval_info = evaluate_adroit(agent,
                          eval_env,
-                         num_episodes=100,
+                         num_episodes=2 if FLAGS.debug else 100,
                          progress_bar=False)
     for k, v in eval_info.items():
         wandb.log({f'evaluation/{k}': v}, step=i)
@@ -165,11 +191,16 @@ def main(_):
     if FLAGS.finetune_online and FLAGS.max_online_gradient_steps > 0:
         print('Start online training')
         observation, done = env.reset(), False
+        transitions = []
         tbar = tqdm.tqdm(range(1, FLAGS.max_online_gradient_steps + 1), smoothing=0.1, disable=not FLAGS.tqdm)
         for i in tbar:
             tbar.set_description(f"[{FLAGS.algorithm} {FLAGS.seed} (online)]")
 
-            action = agent.sample_actions(observation)
+            out = agent.sample_actions(observation)
+            if isinstance(out, tuple):
+                action, agent = out
+            else:
+                action = out
 
             env_step = env.step(action)
             if len(env_step) == 4:
@@ -184,16 +215,24 @@ def main(_):
             else:
                 mask = 0.0
 
-            replay_buffer.insert(
-                dict(
-                    observations=observation,
-                    actions=action,
-                    rewards=reward,
-                    masks=mask,
-                    dones=done,
-                    next_observations=next_observation,
-                )
-            )
+            transitions.append(dict(
+                observations=observation,
+                actions=action,
+                rewards=reward,
+                masks=mask,
+                dones=done,
+                next_observations=next_observation,
+            ))
+            # replay_buffer.insert(
+            #     dict(
+            #         observations=observation,
+            #         actions=action,
+            #         rewards=reward,
+            #         masks=mask,
+            #         dones=done,
+            #         next_observations=next_observation,
+            #     )
+            # )
             observation = next_observation
 
             if done:
@@ -202,8 +241,27 @@ def main(_):
                     wandb.log({f"training/{decode[k]}": v}, step=i + FLAGS.max_gradient_steps)
                 observation, done = env.reset(), False
 
+                reward_to_go = [0]*len(transitions)
+                prev_return = transitions[-1]["rewards"]/(1- FLAGS.discount)
+                for i in range(len(transitions)):
+                    reward_to_go[-i-1] = transitions[-i-1]["rewards"] + FLAGS.discount * prev_return
+                    prev_return = reward_to_go[-i-1]
+
+                for i, transition in enumerate(transitions):
+                    transition["mc_returns"] = reward_to_go[i]
+                    replay_buffer.insert(transition)
+                transitions = []
+
             batch = next(replay_buffer_iterator)
-            update_info = agent.update(batch)
+            if FLAGS.algorithm == "idql":
+                out = agent.update_online(batch)
+            else:
+                out = agent.update(batch)
+
+            if isinstance(out, tuple):
+                agent, update_info = out
+            else:
+                update_info = out
 
             if i % FLAGS.log_interval == 0:
                 for k, v in update_info.items():
@@ -247,20 +305,29 @@ def make_env(task, ep_length, action_repeat, proprio, camera_angle=None):
         raise ValueError(f"Unsupported environment suite: \"{suite}\".")
     return env
 
-def load_episode(episode_file):
+def load_episode(episode_file, discount):
     with open(episode_file, 'rb') as f:
         episode = np.load(f, allow_pickle=True)
 
         episode = {k: episode[k] for k in episode.keys() if k not in ['image_128'] and "metadata" not in k and "str" not in episode[k].dtype.name and episode[k].dtype != object}
 
+    reward_to_go = np.zeros_like(episode["reward"])
+    prev_return = episode["reward"][-1]/(1- discount)
+    # prev_return = 0
+    for i in range(episode["reward"].shape[0]):
+        reward_to_go[-i-1] = episode["reward"][-i-1] + discount * prev_return
+        prev_return = reward_to_go[-i-1]
+
+    episode["mc_returns"] = reward_to_go
+
     return episode
 
-def load_data(replay_buffer, offline_dataset_path, ep_length, num_stack, proprio, debug=False):
+def load_data(replay_buffer, offline_dataset_path, ep_length, num_stack, proprio, discount, debug=False):
     episode_files = glob(os.path.join(offline_dataset_path, '**', '*.npz'), recursive=True)
     total_transitions = 0
 
     for episode_file in tqdm.tqdm(episode_files, total=len(episode_files), desc="Loading offline data"):
-        episode = load_episode(episode_file)
+        episode = load_episode(episode_file, discount)
 
         # observation, done = env.reset(), False
         frames = collections.deque(maxlen=num_stack)
@@ -276,6 +343,7 @@ def load_data(replay_buffer, offline_dataset_path, ep_length, num_stack, proprio
         while not done:
             # action = agent.sample_actions(observation)
             action = episode["action"][i]
+            mc_returns = episode["mc_returns"][i]
 
             # next_observation, reward, done, info = env.step(action)
             frames.append(episode["image"][i])
@@ -299,6 +367,7 @@ def load_data(replay_buffer, offline_dataset_path, ep_length, num_stack, proprio
                     masks=mask,
                     dones=done,
                     next_observations=next_observation,
+                    mc_returns=mc_returns,
                 )
             )
             observation = next_observation
