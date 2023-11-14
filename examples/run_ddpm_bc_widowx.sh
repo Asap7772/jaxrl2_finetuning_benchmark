@@ -7,7 +7,7 @@ debug=0
 if [ $debug -eq 1 ]; then
     proj_name=test
 else
-    proj_name=06_05_widowx_ddpm_bc
+    proj_name=09_13_widowx_ddpm_bc
 fi
 
 # proj_name=test
@@ -25,7 +25,7 @@ total_runs=0
 max_runs=8
 gpu_id=0
 which_devices=(0 1 2 3 4 5)
-datasets=(sorting pickplace)
+datasets=(sorting_nobinnoise sorting_nonzerobinnoise sorting sorting_pickplace)
 
 if [ $debug -eq 1 ]; then
     max_runs=1

@@ -1,16 +1,7 @@
 import os
 
-DATA_PATH = '/home/asap7772/binsort_bridge_sorted/04_26_collect_multitask/'
-ALL_DATASETS = [
-    'actionnoise0.0_binnoise0.0_policypickplace_sparse0', 
-    'actionnoise0.05_binnoise0.1_policypickplace_sparse0', 
-    'actionnoise0.0_binnoise0.0_policysorting_sparse0', 
-    'actionnoise0.05_binnoise0.0_policysorting_sparse0', 
-    'actionnoise0.0_binnoise0.1_policypickplace_sparse0', 
-    'actionnoise0.05_binnoise0.1_policysorting_sparse0', 
-    'actionnoise0.05_binnoise0.0_policypickplace_sparse0', 
-    'actionnoise0.0_binnoise0.1_policysorting_sparse0'
-]
+DATA_PATH = '/home/asap7772/kun2/binsort_bridge_1109/11_09_collect_multitask_fulltrajlen/'
+ALL_DATASETS = os.listdir(DATA_PATH)
 
 def debug_config():
     return ["/home/asap7772/binsort_bridge/test/actionnoise0.0_binnoise0.0_policysorting_sparse0/train/out.npy"]
@@ -19,6 +10,16 @@ def sorting_dataset(train=True):
     suffix = 'train' if train else 'test'
     suffix = "/" + suffix + "/" + 'out.npy'
     return [DATA_PATH + x + suffix for x in ALL_DATASETS if 'sorting' in x]
+
+def sorting_nobinnoise_dataset(train=True):
+    suffix = 'train' if train else 'test'
+    suffix = "/" + suffix + "/" + 'out.npy'
+    return [DATA_PATH + x + suffix for x in ALL_DATASETS if 'sorting' in x and 'binnoise0.0' in x]
+
+def sorting_nonzerobinnoise_dataset(train=True):
+    suffix = 'train' if train else 'test'
+    suffix = "/" + suffix + "/" + 'out.npy'
+    return [DATA_PATH + x + suffix for x in ALL_DATASETS if 'sorting' in x and 'binnoise0.0' not in x]
 
 def pickplace_dataset(train=True):
     suffix = 'train' if train else 'test'
@@ -30,11 +31,22 @@ def sorting_pickplace_dataset(train=True):
     suffix = "/" + suffix + "/" + 'out.npy'
     return [DATA_PATH + x + suffix for x in ALL_DATASETS]
 
-if __name__ == '__main__':
-    print(sorting_dataset())
-    print(sorting_pickplace_dataset())
-    print(pickplace_dataset())
+def check_datasets():
+    curr_datasets=dict(
+        sorting=sorting_dataset(),
+        sorting_nobinnoise_dataset=sorting_nobinnoise_dataset(),
+        sorting_nonzerobinnoise_dataset=sorting_nonzerobinnoise_dataset(),
+        sorting_pickplace=sorting_pickplace_dataset(),
+        pickplace=pickplace_dataset(),
+    )
+    for name, lst in curr_datasets.items():
+        print(name, len(lst))
+        for x in lst:
+            assert os.path.exists(x), x
+            print(x)
+        print()
+
+    print("all good")
     
-    for y in [sorting_dataset(), sorting_pickplace_dataset(), pickplace_dataset()]:
-        for x in y:
-            assert os.path.exists(x)
+if __name__ == '__main__':
+   check_datasets() 

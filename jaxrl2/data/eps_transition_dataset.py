@@ -7,6 +7,7 @@ import gc
 import jax
 from jaxrl2.data.dataset import Dataset
 import tqdm
+import jax.numpy as jnp
 
 RETURN_TO_GO_DICT = dict()
 
@@ -143,6 +144,7 @@ class EpisodicTransitionDataset(Dataset):
         add_framestack_dim=True,
         max_traj_per_buffer=200,
         filter_success=False,
+        success_reward_filter=1,
     ):
         if isinstance(paths, str):
             paths = [paths]
@@ -169,13 +171,14 @@ class EpisodicTransitionDataset(Dataset):
             num_traj = min(len(data), max_traj_per_buffer)
             for i in tqdm.tqdm(range(num_traj)):
                 rews = np.array(data[i]["rewards"])
-                if filter_success:
-                    if not rews.any():
-                        continue
+
                 data[i]["mc_returns"] = calc_return_to_go(rews)
                 data[i]["masks"] = np.ones_like(np.array(data[i]["terminals"]))
 
-                succ.append(rews.any())
+                succ.append(rews.max() >= success_reward_filter)
+                if filter_success and rews.max() < success_reward_filter:
+                    continue
+
                 self.episodes_lens.append(len(rews))
 
                 new_format_dict = reformat_nested_dict(
@@ -237,11 +240,19 @@ class EpisodicTransitionDataset(Dataset):
 
 
 def main():
-    path = "/nfs/kun2/users/asap7772/binsort_bridge/04_26_collect_multitask/actionnoise0.0_binnoise0.0_policypickplace_sparse0/train/out.npy"
-    dataset = EpisodicTransitionDataset(path)
-    batch = dataset.sample(13)
+    path = "/nfs/kun2/users/asap7772/binsort_bridge_1108/11_08_collect_multitask/actionnoise0.0_binnoise0.0_policysorting_sparse0/train/out.npy"
+    dataset = EpisodicTransitionDataset(path, filter_success=True, success_reward_filter=2)
+    batch = dataset.sample(8)
     print(jax.tree_util.tree_map(lambda x: x.shape, batch))
-    breakpoint()
+    
+    images = batch["observations"]["pixels"].squeeze()
+    images = jnp.pad(images, ((0, 0), (5, 5), (2, 2), (0, 0)), 'constant', constant_values=255)
+    images = np.array(images)
+    images = images.transpose((1, 0, 2, 3))
+    images = images.reshape((images.shape[0], -1, *images.shape[3:]))
+    from PIL import Image
+    filmstrip = Image.fromarray(images)
+    filmstrip.save("filmstrip.png")
 
 
 if __name__ == "__main__":

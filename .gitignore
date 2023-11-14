@@ -137,3 +137,6 @@ examples/scratch.py
 examples/scripts*
 examples/count_transitions.py
 examples/results*
+
+# Ignore dataset path
+11_09_collect_multitask_fulltrajlen

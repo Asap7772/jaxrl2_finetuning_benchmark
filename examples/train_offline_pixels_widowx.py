@@ -97,11 +97,20 @@ def main(variant):
             print("setting nstep return off during offline phase")
             agent.online_bound_nstep_return = -1
         
+        check_datasets()
         config_type = variant.get('dataset', 'debug')
+        max_reward=1
         if config_type == 'debug':
             dataset_paths = debug_config()
         elif config_type == 'sorting':
             dataset_paths = sorting_dataset()
+            max_reward=2
+        elif config_type == 'sorting_nobinnoise':
+            dataset_paths = sorting_nobinnoise_dataset()
+            max_reward=2
+        elif config_type == 'sorting_nonzerobinnoise':
+            dataset_paths = sorting_nonzerobinnoise_dataset()
+            max_reward=2
         elif config_type == 'pickplace':
             dataset_paths = pickplace_dataset()
         elif config_type == 'sorting_pickplace':
@@ -110,7 +119,7 @@ def main(variant):
             raise ValueError(f"Unknown dataset type {config_type}")
         
         filter_success = variant['algorithm'] in ['bc'] or variant.get('filter_success', False)
-        replay_buffer = EpisodicTransitionDataset(dataset_paths, filter_success=filter_success)
+        replay_buffer = EpisodicTransitionDataset(dataset_paths, filter_success=filter_success, success_reward_filter=max_reward)
 
         offline_training_loop(
             variant,

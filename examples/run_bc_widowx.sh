@@ -3,30 +3,31 @@ eval "$(conda shell.bash hook)"
 conda activate jax_recreate
 
 debug=0
+dry_run=0
 
 if [ $debug -eq 1 ]; then
     proj_name=test
 else
-    proj_name=06_05_widowx_bc_relaunch
+    proj_name=11_13_widowx_bc
 fi
 
 # proj_name=test
 tpu_id=0
 tpu_port=$(( $tpu_id+8820 ))
-export PYTHONPATH=/home/asap7772/jaxrl2_finetuning_benchmark/:$PYTHONPATH; 
-export EXP=/home/asap7772/jaxrl2_finetuning_benchmark/experiment_output
+export PYTHONPATH=/home/asap7772/kun2/jaxrl2_finetuning_benchmark/:$PYTHONPATH; 
+export PYTHONPATH=/home/asap7772/kun2/finetuning_benchmark/:$PYTHONPATH; 
+export PYTHONPATH=/home/asap7772/kun2/finetuning_benchmark/data_collection/:$PYTHONPATH;
+export EXP=/home/asap7772/kun2/jaxrl2_finetuning_benchmark/experiment_output
 export DATA=/nfs/nfs1/
 
-seed=1
-cql_alpha=5
-dry_run=0
-
+which_exp=${1:--1}
 total_runs=0
 max_runs=8
-gpu_id=0
-which_devices=(0 1 2 3 4 5 6 7 0 1 2 3)
+
+num_seeds=2
+which_devices=(0 1 2 3 4 5 6 7)
 actor_lrs=(0.0001)
-datasets=(sorting pickplace sorting_pickplace)
+datasets=(sorting_nobinnoise sorting_nonzerobinnoise sorting sorting_pickplace)
 
 if [ $debug -eq 1 ]; then
     max_runs=1
@@ -36,16 +37,14 @@ fi
 
 for dataset in ${datasets[@]}; do
 for actor_lr in ${actor_lrs[@]}; do
+for seed in $(seq 1 $num_seeds); do
 
-prefix=${proj_name}_${dataset}_cql_alpha_${alpha}_dataset_${dataset}_seed_${seed}
-which_gpu=${which_devices[$gpu_id]}
-export CUDA_VISIBLE_DEVICES=$which_gpu
-echo "Running on GPU $which_gpu"
+prefix=${proj_name}_${dataset}_dataset_${dataset}_seed_${seed}
+which_gpu=${which_devices[$total_runs % ${#which_devices[@]}]}
 
 export CUDA_VISIBLE_DEVICES=$which_gpu
 export MUJOCO_GL=egl
 export MUJOCO_EGL_DEVICE_ID=$which_gpu
-
 
 command="XLA_PYTHON_CLIENT_PREALLOCATE=false python3 examples/launch_train_widowx_bc.py \
 --prefix $prefix \
@@ -64,22 +63,30 @@ command="XLA_PYTHON_CLIENT_PREALLOCATE=false python3 examples/launch_train_widow
 --checkpoint_interval 10000000000000 \
 --tpu_port $tpu_port"
 
-echo $command
-
-if [ $dry_run -eq 0 ]; then
-    eval $command &
-    sleep 100
-fi
-
-gpu_id=$(( $gpu_id+1 ))
-if [ $gpu_id -eq 7 ]; then
-    gpu_id=0
+if [[ $which_exp -eq $total_runs ]]; then
+    echo "Running on GPU $which_gpu"
+    echo -e "$command\n"
+    if [ $dry_run -eq 0 ]; then
+        echo "Running experiment $which_exp"
+        eval $command
+    fi
+elif [[ $which_exp -lt 0 ]]; then
+    echo "Running on GPU $which_gpu"
+    echo -e "$command\n"
+    if [ $dry_run -eq 0 ]; then
+        eval $command &
+        sleep 100
+    fi
 fi
 
 total_runs=$(( $total_runs+1 ))
 if [ $total_runs -eq $max_runs ]; then
+    echo "Total runs: $total_runs"
     exit
 fi
 
 done
 done
+done
+
+echo "Total runs: $total_runs"

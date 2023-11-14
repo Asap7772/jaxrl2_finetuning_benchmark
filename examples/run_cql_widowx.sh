@@ -7,7 +7,7 @@ debug=0
 if [ $debug -eq 1 ]; then
     proj_name=test
 else
-    proj_name=06_05_widowx_cql_smaller_alphas_relaunch
+    proj_name=09_13_cql_widowx
 fi
 
 tpu_id=0
@@ -25,14 +25,13 @@ max_runs=8
 gpu_id=0
 which_devices=(0 1 0 1 2 3)
 
-alphas=(0.05 0.1 0.2)
-# alphas=(0.05 0.1 0.2 0.5 1.0 2.0 5.0 10.0)
+
+alphas=(0.05 0.1 0.2 0.5 1.0 2.0 5.0 10.0)
 if [ $debug -eq 1 ]; then
     max_runs=1
     datasets=(debug)
 else
-    datasets=(sorting pickplace)
-    # datasets=(sorting_pickplace)
+    datasets=(sorting_nobinnoise sorting_nonzerobinnoise sorting sorting_pickplace)
 fi
 
 for alpha in ${alphas[@]}; do
