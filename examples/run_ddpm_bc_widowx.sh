@@ -17,7 +17,7 @@ export PYTHONPATH=/home/asap7772/jaxrl2_finetuning_benchmark/:$PYTHONPATH;
 export EXP=/home/asap7772/jaxrl2_finetuning_benchmark/experiment_output
 export DATA=/nfs/nfs1/
 
-seed=0
+seed=1
 cql_alpha=5
 dry_run=0
 
@@ -34,7 +34,6 @@ if [ $debug -eq 1 ]; then
 fi
 
 for dataset in ${datasets[@]}; do
-for expectile in ${expectiles[@]}; do
 
 prefix=${proj_name}_${dataset}_cql_alpha_${alpha}_dataset_${dataset}_seed_${seed}
 which_gpu=${which_devices[$gpu_id]}
@@ -52,7 +51,6 @@ command="XLA_PYTHON_CLIENT_PREALLOCATE=false python3 examples/launch_train_widow
 --batch_size 64 \
 --encoder_type impala  \
 --dataset $dataset \
---expectile $expectile \
 --seed $seed \
 --offline_finetuning_start -1 \
 --online_start 10000000000000 \
@@ -84,5 +82,4 @@ if [ $total_runs -eq $max_runs ]; then
     exit
 fi
 
-done
 done

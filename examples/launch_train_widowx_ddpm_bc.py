@@ -117,7 +117,33 @@ if __name__ == '__main__':
 
     # algorithm args:
     train_args_dict = dict(
+        actor_lr = 3e-4,
+        critic_lr = 3e-4,
+        value_lr = 3e-4,
+        decay_steps = None,
+        hidden_dims = (256, 256),
+        cnn_features = (32, 32, 32, 32),
+        cnn_strides = (2, 1, 1, 1),
+        cnn_padding = 'VALID',
         latent_dim = 50,
+        discount = 0.99,
+        tau = 0.005,
+        expectile = 0.9,
+        A_scaling = 10.0,
+        critic_reduction = 'min',
+        dropout_rate = None,
+        encoder_type='resnet_34_v1',
+        encoder_norm='batch',
+        policy_type='unit_std_normal',
+        policy_std=1.,
+        color_jitter = 1,
+        share_encoders = 0,
+        mlp_init_scale=1.,
+        mlp_output_scale=1.,
+        use_spatial_softmax=1,
+        softmax_temperature=1,
+        aug_next=0,
+        use_bottleneck=1
     )
     
     variant, args = parse_training_args(train_args_dict, parser)
