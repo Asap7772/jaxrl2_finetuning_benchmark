@@ -7,14 +7,16 @@ debug=0
 if [ $debug -eq 1 ]; then
     proj_name=test
 else
-    proj_name=09_13_widowx_ddpm_bc
+    proj_name=11_18_widowx_ddpm_bc
 fi
 
 # proj_name=test
 tpu_id=0
 tpu_port=$(( $tpu_id+8820 ))
-export PYTHONPATH=/home/asap7772/jaxrl2_finetuning_benchmark/:$PYTHONPATH; 
-export EXP=/home/asap7772/jaxrl2_finetuning_benchmark/experiment_output
+export PYTHONPATH=/home/asap7772/kun2/jaxrl2_finetuning_benchmark/:$PYTHONPATH; 
+export PYTHONPATH=/home/asap7772/kun2/finetuning_benchmark/:$PYTHONPATH; 
+export PYTHONPATH=/home/asap7772/kun2/finetuning_benchmark/data_collection/:$PYTHONPATH;
+export EXP=/home/asap7772/kun2/jaxrl2_finetuning_benchmark/experiment_output
 export DATA=/nfs/nfs1/
 
 seed=1
@@ -22,9 +24,9 @@ cql_alpha=5
 dry_run=0
 
 total_runs=0
-max_runs=8
+max_runs=4
 gpu_id=0
-which_devices=(0 1 2 3 4 5)
+which_devices=(0 1 2 3)
 datasets=(sorting_nobinnoise sorting_nonzerobinnoise sorting sorting_pickplace)
 
 if [ $debug -eq 1 ]; then

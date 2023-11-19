@@ -120,14 +120,8 @@ def main(variant):
         else:
             raise ValueError(f"Unknown dataset type {config_type}")
         
-<<<<<<< HEAD
         filter_success = variant['algorithm'] in ['bc'] or variant.get('filter_success', False)
-        replay_buffer = EpisodicTransitionDataset(dataset_paths, filter_success=filter_success, success_reward_filter=max_reward)
-=======
-        # filter_success = variant['algorithm'] in ['bc'] or variant.get('filter_success', False)
-        filter_success = True
         replay_buffer = EpisodicTransitionDataset(dataset_paths, filter_success=filter_success)
->>>>>>> 74dc987e70149185c8feed025e3fcd39d1619954
 
         offline_training_loop(
             variant,

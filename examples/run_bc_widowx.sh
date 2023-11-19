@@ -40,7 +40,7 @@ for actor_lr in ${actor_lrs[@]}; do
 for seed in $(seq 1 $num_seeds); do
 
 prefix=${proj_name}_${dataset}_dataset_${dataset}_seed_${seed}
-which_gpu=${which_devices[$total_runs % ${#which_devices[@]}]}
+which_gpu=${which_devices[$gpu_id % ${#which_devices[@]}]}
 
 export CUDA_VISIBLE_DEVICES=$which_gpu
 export MUJOCO_GL=egl

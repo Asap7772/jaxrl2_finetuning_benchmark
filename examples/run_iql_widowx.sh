@@ -7,14 +7,16 @@ debug=0
 if [ $debug -eq 1 ]; then
     proj_name=test
 else
-    proj_name=09_13_widowx_iql
+    proj_name=11_18_widowx_iql
 fi
 
 # proj_name=test
 tpu_id=0
 tpu_port=$(( $tpu_id+8820 ))
-export PYTHONPATH=/home/asap7772/jaxrl2_finetuning_benchmark/:$PYTHONPATH; 
-export EXP=/home/asap7772/jaxrl2_finetuning_benchmark/experiment_output
+export PYTHONPATH=/home/asap7772/kun2/jaxrl2_finetuning_benchmark/:$PYTHONPATH; 
+export PYTHONPATH=/home/asap7772/kun2/finetuning_benchmark/:$PYTHONPATH; 
+export PYTHONPATH=/home/asap7772/kun2/finetuning_benchmark/data_collection/:$PYTHONPATH;
+export EXP=/home/asap7772/kun2/jaxrl2_finetuning_benchmark/experiment_output
 export DATA=/nfs/nfs1/
 
 seed=1

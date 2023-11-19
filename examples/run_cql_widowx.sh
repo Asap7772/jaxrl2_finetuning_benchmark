@@ -12,8 +12,10 @@ fi
 
 tpu_id=0
 tpu_port=$(( $tpu_id+8820 ))
-export PYTHONPATH=/home/asap7772/jaxrl2_finetuning_benchmark/:$PYTHONPATH; 
-export EXP=/home/asap7772/jaxrl2_finetuning_benchmark/experiment_output
+export PYTHONPATH=/home/asap7772/kun2/jaxrl2_finetuning_benchmark/:$PYTHONPATH; 
+export PYTHONPATH=/home/asap7772/kun2/finetuning_benchmark/:$PYTHONPATH; 
+export PYTHONPATH=/home/asap7772/kun2/finetuning_benchmark/data_collection/:$PYTHONPATH;
+export EXP=/home/asap7772/kun2/jaxrl2_finetuning_benchmark/experiment_output
 export DATA=/nfs/nfs1/
 
 seed=1
@@ -21,12 +23,12 @@ cql_alpha=5
 dry_run=0
 
 total_runs=0
-max_runs=8
+max_runs=32
 gpu_id=0
-which_devices=(0 1 0 1 2 3)
+which_devices=(0 1 2 3 4 5 6 7)
 
 
-alphas=(0.05 0.1 0.2 0.5 1.0 2.0 5.0 10.0)
+alphas=(0.1 1 5 10)
 if [ $debug -eq 1 ]; then
     max_runs=1
     datasets=(debug)
@@ -39,7 +41,7 @@ for dataset in ${datasets[@]}; do
 for calql in 0; do
 
 prefix=${proj_name}_${dataset}_cql_alpha_${alpha}_dataset_${dataset}_seed_${seed}
-which_gpu=${which_devices[$gpu_id]}
+which_gpu=${which_devices[$gpu_id % ${#which_devices[@]}]}
 export CUDA_VISIBLE_DEVICES=$which_gpu
 echo "Running on GPU $which_gpu"
 
